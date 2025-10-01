@@ -19,7 +19,6 @@ This service allows you to integrate multiple sensors into Victron's Venus OS us
     # Use pip to install the required libraries
     pip install paho-mqtt pygobject
     ```
-    This script uses the `velib_python` library that is already included in Venus OS, so no additional Victron-specific libraries need to be copied.
 
 ## Installation
 
@@ -33,9 +32,6 @@ This service allows you to integrate multiple sensors into Victron's Venus OS us
     ```
 
 4.  **Edit `config.ini`** to match your MQTT broker and sensor definitions.
-    ```bash
-    nano config.ini
-    ```
 
 5.  **Make the scripts executable**:
     ```bash
@@ -46,8 +42,48 @@ This service allows you to integrate multiple sensors into Victron's Venus OS us
     ```bash
     bash install.sh
     ```
-
 The services will start automatically.
+
+## Expected JSON Structure
+
+The script is designed to parse a specific JSON format: an object that contains an array of sensor objects. The MQTT message payload sent to the configured topic should look like this:
+
+```json
+{
+  "sensors": [
+    {
+      "id": "outside",
+      "temperature": 21.5,
+      "humidity": 55.2,
+      "pressure": 1013.2
+    },
+    {
+      "id": "fridge",
+      "temperature": 4.1
+    },
+    {
+      "id": "engine_room",
+      "temperature": 45.8,
+      "humidity": 78.0
+    }
+  ]
+}
+```
+
+-   The `"sensors"` key must match the `JsonArrayRoot` value in your `config.ini`.
+-   The `"id"` key in each object must match the `SensorIdKey` value from your config. Its value (e.g., `"outside"`) must correspond to a sensor section like `[outside]` in your `config.ini`.
+-   It is not necessary for every sensor object to contain all possible values (temperature, humidity, pressure). The script will only update the values it finds.
+
+### A Note on Node-RED
+
+This data structure is easily created using **Node-RED**, which is included in Venus OS Large firmware. You can gather data from various sources (like RuuviTags, Shelly sensors, BLE devices, etc.), use a `join` node or a `function` node to assemble them into this single array format, and then publish the complete JSON object to the MQTT topic that this service listens to.
+
+## Troubleshooting
+
+You can check the logs for each individual sensor. For a sensor with the ID `saloon`, the command is:
+```bash
+tail -f /service/dbus-mqtt-temperature-saloon/log/current | tai64nlocal
+```
 
 ## Uninstallation
 
