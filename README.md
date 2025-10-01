@@ -31,7 +31,7 @@ This service allows you to integrate multiple sensors into Victron's Venus OS us
 
 3.  **Download the project.**
     ```bash
-    wget -O main.zip https://github.com/spidgrou/venus-os_dbus-mqtt-temperature-array-json/archive/refs/heads/main.zip
+    wget -O main.zip https://github.com/spidgrou/venus-os_dbus-mqtt-temperature-array-json/releases/latest/download/main.zip
     ```
 
 4.  **Unzip the project and clean up.**
