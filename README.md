@@ -8,86 +8,98 @@ This service allows you to integrate multiple sensors into Victron's Venus OS us
 
 1.  **Venus OS Large Firmware (Recommended):** This script is best run on a "Large" firmware version of Venus OS, as it includes the necessary package manager (`opkg`, `pip`).
 
-2.  **Python Libraries:** The script requires two external Python libraries. To install them, connect to your Venus OS device via SSH and run the following commands:
+2.  **Required Packages:** Before installing, you may need some common tools. Connect to your Venus OS device via SSH and run the following commands:
     ```bash
     # Update the package list
     opkg update
     
-    # Install the Python package manager, pip
-    opkg install python3-pip
+    # Install unzip and the Python package manager, pip
+    opkg install unzip python3-pip
     
-    # Use pip to install the required libraries
-    pip install paho-mqtt pygobject
+    # Use pip3 to install the required libraries
+    pip3 install paho-mqtt pygobject
     ```
 
 ## Installation
 
 1.  **Connect to your Venus OS device** via SSH.
 
-2.  **Clone or copy the project files** into `/data/etc/dbus-mqtt-temperature`.
+2.  **Navigate to the `/data/etc` directory.**
+    ```bash
+    cd /data/etc
+    ```
 
-3.  **Create your configuration file**:
+3.  **Download the project.**
+    ```bash
+    wget -O main.zip https://github.com/spidgrou/venus-os_dbus-mqtt-temperature-array-json/archive/refs/heads/main.zip
+    ```
+
+4.  **Unzip the project and clean up.**
+    ```bash
+    unzip main.zip
+    mv venus-os_dbus-mqtt-temperature-array-json-main dbus-mqtt-temperature
+    rm main.zip
+    ```
+
+5.  **Enter the project directory.**
+    ```bash
+    cd dbus-mqtt-temperature
+    ```
+
+6.  **Create your configuration file.**
     ```bash
     cp config.ini.example config.ini
     ```
 
-4.  **Edit `config.ini`** to match your MQTT broker and sensor definitions.
+7.  **Edit `config.ini`** to match your MQTT broker and sensor definitions.
 
-5.  **Make the scripts executable**:
+8.  **Make the scripts executable.**
     ```bash
     chmod +x install.sh uninstall.sh
     ```
 
-6.  **Run the installation script**:
+9.  **Run the installation script.**
     ```bash
     bash install.sh
     ```
 The services will start automatically.
 
-## Expected JSON Structure
-
-The script is designed to parse a specific JSON format: an object that contains an array of sensor objects. The MQTT message payload sent to the configured topic should look like this:
-
-```json
-{
-  "sensors": [
-    {
-      "id": "outside",
-      "temperature": 21.5,
-      "humidity": 55.2,
-      "pressure": 1013.2
-    },
-    {
-      "id": "fridge",
-      "temperature": 4.1
-    },
-    {
-      "id": "engine_room",
-      "temperature": 45.8,
-      "humidity": 78.0
-    }
-  ]
-}
-```
-
--   The `"sensors"` key must match the `JsonArrayRoot` value in your `config.ini`.
--   The `"id"` key in each object must match the `SensorIdKey` value from your config. Its value (e.g., `"outside"`) must correspond to a sensor section like `[outside]` in your `config.ini`.
--   It is not necessary for every sensor object to contain all possible values (temperature, humidity, pressure). The script will only update the values it finds.
-
-### A Note on Node-RED
-
-This data structure is easily created using **Node-RED**, which is included in Venus OS Large firmware. You can gather data from various sources (like RuuviTags, Shelly sensors, BLE devices, etc.), use a `join` node or a `function` node to assemble them into this single array format, and then publish the complete JSON object to the MQTT topic that this service listens to.
-
 ## Troubleshooting
 
-You can check the logs for each individual sensor. For a sensor with the ID `saloon`, the command is:
+If your sensors do not appear in the Device List, follow these steps to diagnose the issue.
+
+#### 1. Check if the Service is Running
+
+For each sensor, a separate service is created. You can check its status using the `svstat` command. Replace `[your_sensor_id]` with the actual ID from your `config.ini` (e.g., `fridge`).
+
 ```bash
-tail -f /service/dbus-mqtt-temperature-saloon/log/current | tai64nlocal
+svstat /service/dbus-mqtt-temperature-[your_sensor_id]
 ```
+
+**Example:**
+```bash
+svstat /service/dbus-mqtt-temperature-fridge
+```
+
+-   **GOOD:** The output shows `up` with a stable process ID (PID) and an increasing uptime (e.g., `/service/dbus-mqtt-temperature-fridge: up (pid 12345) 60 seconds`). This means the script is running without crashing.
+-   **BAD:** The output shows `down`, or the PID number changes every few seconds. This means the script is in a crash loop. If this is the case, proceed to the next step.
+
+#### 2. Check the Log File
+
+All services write their output and errors to a central log file. This is the best place to find out why a service is crashing or not receiving data.
+
+```bash
+tail -f /data/log/dbus-mqtt-temperature/current | tai64nlocal
+```
+
+Look for:
+-   **Success messages:** Lines containing `Worker process starting`, `D-Bus service successfully registered`, and `Connected to MQTT`.
+-   **Data messages:** A line like `Updating values for...` every time an MQTT message is received.
+-   **Error messages:** Any line containing `ERROR` or `Traceback` will tell you exactly what is wrong (e.g., a typo in `config.ini`, a problem connecting to the MQTT broker, or an issue with the JSON format).
 
 ## Uninstallation
 
-To completely remove all services, run the uninstaller:
+To completely remove all services, run the uninstaller from the project directory:
 ```bash
 bash uninstall.sh
 ```
