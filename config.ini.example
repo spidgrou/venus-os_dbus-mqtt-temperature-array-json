@@ -1,0 +1,57 @@
+[DEFAULT]
+# General MQTT broker settings
+MqttBroker = 192.168.15.151
+MqttPort = 1883
+MqttUser = 
+MqttPass = 
+
+# The SINGLE MQTT topic to read the JSON array from
+MqttTopic = venusOS/temperature/sensors
+
+# The key in the JSON payload that contains the array of sensors
+JsonArrayRoot = sensors
+
+# The key in each object within the array that identifies the sensor
+SensorIdKey = id
+
+# ===================================================================
+# SENSOR DEFINITIONS (Version 1.1)
+# ===================================================================
+# - Use 'yes' or 'no' to enable or disable publishing of a specific value for each sensor.
+# ===================================================================
+
+[outside]
+CustomName = Outside
+DeviceInstance = 110
+PublishTemperature = yes
+PublishHumidity = yes
+PublishPressure = yes
+
+[engine_room]
+CustomName = Engine Room
+DeviceInstance = 111
+PublishTemperature = yes
+PublishHumidity = yes
+PublishPressure = no
+
+[fridge]
+CustomName = Fridge
+DeviceInstance = 112
+# This sensor will only show temperature
+PublishTemperature = yes
+PublishHumidity = no
+PublishPressure = no
+
+[freezer]
+CustomName = Freezer
+DeviceInstance = 113
+PublishTemperature = yes
+PublishHumidity = no
+PublishPressure = no
+
+[saloon]
+CustomName = Saloon
+DeviceInstance = 114
+PublishTemperature = yes
+PublishHumidity = yes
+PublishPressure = yes
