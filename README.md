@@ -6,13 +6,14 @@ This service allows you to integrate multiple sensors into Victron's Venus OS us
 
 ## Prerequisites
 
-The installation script will automatically try to install the required packages. If you encounter issues, you can install them manually by connecting to your Venus OS device via SSH and running the following commands:
+The installation script will automatically try to install the required packages (`curl`, `unzip`). If you encounter issues, or if you are running a minimal firmware, you can install the dependencies manually by connecting to your Venus OS device via SSH and running these commands:
+
 ```bash
 # Update the package list
 opkg update
 
-# Install required tools and the Python package manager, pip
-opkg install curl jq unzip python3-pip
+# Install required tools and the Python package manager
+opkg install curl unzip python3-pip
 
 # Use pip3 to install the required Python libraries
 pip3 install paho-mqtt pygobject
