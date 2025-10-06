@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installer v12.2 - Smart wait for D-Bus service
+# Installer v12.3 - Fast and Smart wait for D-Bus
 
 SERVICE_DIR_BASE="/data/etc/dbus-mqtt-temperature"
 PYTHON_SCRIPT_PATH="$SERVICE_DIR_BASE/single_sensor.py"
@@ -29,12 +29,13 @@ for section in $SECTIONS; do
     mkdir -p "$SERVICE_SRC_DIR"
     
     # --- LA MODIFICA CHIAVE E' QUI ---
-    # Sostituiamo 'sleep 30' con un ciclo di attesa intelligente.
+    # Sostituiamo il vecchio comando con uno molto più veloce.
+    # Questo attende solo che il D-Bus broker sia attivo.
     echo "#!/bin/bash" > "$SERVICE_SRC_DIR/run"
     echo "" >> "$SERVICE_SRC_DIR/run"
-    echo "# Wait intelligently for the main D-Bus service to be available" >> "$SERVICE_SRC_DIR/run"
-    echo "echo \"Waiting for D-Bus...\"" >> "$SERVICE_SRC_DIR/run"
-    echo "while ! dbus-send --system --print-reply --dest=com.victronenergy.system /Serial dbus:org.freedesktop.DBus.Properties.Get string:com.victronenergy.system string:Serial > /dev/null 2>&1; do" >> "$SERVICE_SRC_DIR/run"
+    echo "# Wait intelligently for the D-Bus broker to be available" >> "$SERVICE_SRC_DIR/run"
+    echo "echo \"Waiting for D-Bus broker...\"" >> "$SERVICE_SRC_DIR/run"
+    echo "while ! dbus-send --system --print-reply --dest=org.freedesktop.DBus / org.freedesktop.DBus.ListNames > /dev/null 2>&1; do" >> "$SERVICE_SRC_DIR/run"
     echo "    sleep 1" >> "$SERVICE_SRC_DIR/run"
     echo "done" >> "$SERVICE_SRC_DIR/run"
     echo "echo \"D-Bus ready, starting script.\"" >> "$SERVICE_SRC_DIR/run"
