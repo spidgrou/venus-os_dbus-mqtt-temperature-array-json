@@ -1,9 +1,10 @@
 #!/bin/bash
-# Uninstaller v12.0
+# Uninstaller v13.0 - Cleans up services and rc.local entry
 
 SERVICE_DIR_BASE="/data/etc/dbus-mqtt-temperature"
 CONFIG_FILE="$SERVICE_DIR_BASE/config.ini"
 LOG_DIR="/data/log/dbus-mqtt-temperature"
+RC_LOCAL_FILE="/data/rc.local"
 
 echo "--- Uninstalling all dbus-mqtt-temperature services ---"
 SECTIONS=$(grep -E '^\[.*\]$' "$CONFIG_FILE" | sed 's/\[\(.*\)\]/\1/' | grep -v 'DEFAULT' || true)
@@ -17,22 +18,26 @@ else
         SERVICE_SRC_DIR="$SERVICE_DIR_BASE/service-$section"
 
         if [ -L "$SERVICE_DEST_LINK" ]; then
-            echo "Removing service link: $SERVICE_NAME"
             rm "$SERVICE_DEST_LINK"
             sleep 1
         fi
         if [ -d "$SERVICE_SRC_DIR" ]; then
-            echo "Removing source directory: $SERVICE_SRC_DIR"
             rm -rf "$SERVICE_SRC_DIR"
         fi
     done
 fi
 
-# Remove the central log directory as well
 if [ -d "$LOG_DIR" ]; then
-    echo "Removing log directory: $LOG_DIR"
     rm -rf "$LOG_DIR"
 fi
 
 pkill -f "single_sensor.py"
+
+echo "--- Removing startup entry from $RC_LOCAL_FILE... ---"
+if [ -f "$RC_LOCAL_FILE" ]; then
+    sed -i -e "/# Start dbus-mqtt-temperature services on boot/d" "$RC_LOCAL_FILE"
+    sed -i -e "/(sleep 60; \/data\/etc\/dbus-mqtt-temperature\/install.sh &)/d" "$RC_LOCAL_FILE"
+    echo "Startup entry removed (if it existed)."
+fi
+
 echo "--- Uninstallation complete. ---"
