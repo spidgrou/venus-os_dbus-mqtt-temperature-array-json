@@ -222,10 +222,11 @@ class TemperatureBridge:
     def _on_socket_timer(self):
         try:
             self._client.loop_misc()
-            while self._client.want_write():
-                rc = self._client.loop_write()
-                if rc != mqtt.MQTT_ERR_SUCCESS:
-                    break
+            if self._client.is_connected():
+                while self._client.want_write():
+                    rc = self._client.loop_write()
+                    if rc != mqtt.MQTT_ERR_SUCCESS:
+                        break
         except Exception:
             logging.error("MQTT timer error:\n" + traceback.format_exc())
         return True
