@@ -23,6 +23,11 @@ echo "Creating service: $SERVICE_NAME"
 
 cat > "$SERVICE_SRC_DIR/run" << 'RUNEOF'
 #!/bin/bash
+
+# Delay di 5s per evitare race condition su D-Bus name
+# (il name potrebbe essere ancora registrato dopo un restart rapido)
+sleep 5
+
 # Wait for D-Bus broker
 echo "Waiting for D-Bus broker..."
 while ! dbus-send --system --print-reply --dest=org.freedesktop.DBus \

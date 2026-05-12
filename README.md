@@ -128,6 +128,11 @@ Your `config.ini` remains compatible — no changes needed.
 
 ## Changelog
 
+### v12.1 (2026-05-12)
+- **Run script delay (sleep 5)** — prevents `NameExistsException` crash loop on rapid service restart. When runit restarts the service, D-Bus may still hold the old name; the 5s delay gives D-Bus time to release it.
+- **Service directory location** — service lives in `/data/etc/dbus-mqtt-temperature/service/`. The symlink in `/service/` is automatically recreated by Venus OS at boot (standard daemontools behaviour for `/data/etc/*/service/` directories).
+- **Health check false positive fix** — log grep now filters by timestamp to ignore historical errors.
+
 ### v12.0 (2026-05-12)
 - **Single process architecture** — one Python instance manages all sensors (reduced RAM, simpler logging).
 - **MQTT integrated into GLib main loop** — removed per-process `loop_start()` threads.
