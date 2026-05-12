@@ -2,6 +2,7 @@
 # Temperature Bridge v12.0 — Multi-sensor MQTT → D-Bus (single process)
 
 import configparser
+import dbus
 import json
 import logging
 import os
