@@ -1,24 +1,39 @@
 #!/bin/bash
-# Uninstaller - Cleans everything
+# Uninstaller v12.0 — Removes the single multi-sensor service
 
-SERVICE_DIR_BASE="/data/etc/dbus-mqtt-temperature"
-CONFIG_FILE="$SERVICE_DIR_BASE/config.ini"
+SERVICE_NAME="dbus-mqtt-temperature"
+SERVICE_DEST_LINK="/service/$SERVICE_NAME"
+SERVICE_SRC_DIR="/data/etc/dbus-mqtt-temperature/service"
 LOG_DIR="/data/log/dbus-mqtt-temperature"
 
-echo "--- Uninstalling all dbus-mqtt-temperature services ---"
-SECTIONS=$(grep -E '^\[.*\]$' "$CONFIG_FILE" | sed 's/\[\(.*\)\]/\1/' | grep -v 'DEFAULT' || true)
+echo "Stopping service..."
+svc -d "$SERVICE_DEST_LINK" 2>/dev/null
+sleep 1
 
-if [ ! -z "$SECTIONS" ]; then
-    for section in $SECTIONS; do
-        SERVICE_NAME="dbus-mqtt-temperature-$section"
-        SERVICE_DEST_LINK="/service/$SERVICE_NAME"
-        SERVICE_SRC_DIR="$SERVICE_DIR_BASE/service-$section"
-
-        if [ -L "$SERVICE_DEST_LINK" ]; rm "$SERVICE_DEST_LINK"; fi
-        if [ -d "$SERVICE_SRC_DIR" ]; rm -rf "$SERVICE_SRC_DIR"; fi
-    done
+echo "Removing service link..."
+if [ -L "$SERVICE_DEST_LINK" ]; then
+    rm "$SERVICE_DEST_LINK"
 fi
 
-if [ -d "$LOG_DIR" ]; rm -rf "$LOG_DIR"; fi
-pkill -f "single_sensor.py"
-echo "--- Uninstallation complete. ---"
+echo "Removing service directory..."
+if [ -d "$SERVICE_SRC_DIR" ]; then
+    rm -rf "$SERVICE_SRC_DIR"
+fi
+
+echo "Removing log directory..."
+if [ -d "$LOG_DIR" ]; then
+    rm -rf "$LOG_DIR"
+fi
+
+echo ""
+echo "Uninstall complete."
+echo "Note: Your config.ini, temperature_bridge.py and single_sensor.py remain in"
+echo "      /data/etc/dbus-mqtt-temperature/"
+echo "      Remove them manually if desired: rm -rf /data/etc/dbus-mqtt-temperature"
+echo ""
+echo "If you had old individual sensor services, remove them with:"
+echo "  svc -d /service/dbus-mqtt-temperature-outside"
+echo "  svc -d /service/dbus-mqtt-temperature-engine_room"
+echo "  svc -d /service/dbus-mqtt-temperature-fridge"
+echo "  svc -d /service/dbus-mqtt-temperature-freezer"
+echo "  svc -d /service/dbus-mqtt-temperature-saloon"

@@ -1,52 +1,60 @@
 #!/bin/bash
-# Installer v12.3 - Fast and Smart wait for D-Bus
+# Installer v12.0 — Single process multi-sensor
 
 SERVICE_DIR_BASE="/data/etc/dbus-mqtt-temperature"
-PYTHON_SCRIPT_PATH="$SERVICE_DIR_BASE/single_sensor.py"
+PYTHON_SCRIPT_PATH="$SERVICE_DIR_BASE/temperature_bridge.py"
 CONFIG_FILE="$SERVICE_DIR_BASE/config.ini"
-LOG_DIR="/data/log/dbus-mqtt-temperature"
-LOG_FILE="$LOG_DIR/current"
 
-mkdir -p "$LOG_DIR"
-touch "$LOG_FILE"
-chmod 644 "$LOG_FILE"
-
-SECTIONS=$(grep -E '^\[.*\]$' "$CONFIG_FILE" | sed 's/\[\(.*\)\]/\1/' | grep -v 'DEFAULT')
-if [ -z "$SECTIONS" ]; then
-    echo "No sensor sections found."
+# Verifica se c'è ancora la vecchia configurazione
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "ERROR: Config file not found at $CONFIG_FILE"
+    echo "Did you copy config.ini.example to config.ini?"
     exit 1
 fi
 
-echo "Found sensor sections: $SECTIONS"
+# Crea la directory del service
+SERVICE_NAME="dbus-mqtt-temperature"
+SERVICE_SRC_DIR="$SERVICE_DIR_BASE/service"
+SERVICE_DEST_LINK="/service/$SERVICE_NAME"
 
-for section in $SECTIONS; do
-    echo "--- Installing service for sensor: [$section] ---"
-    
-    SERVICE_NAME="dbus-mqtt-temperature-$section"
-    SERVICE_SRC_DIR="$SERVICE_DIR_BASE/service-$section"
-    SERVICE_DEST_LINK="/service/$SERVICE_NAME"
-    
-    mkdir -p "$SERVICE_SRC_DIR"
-    
-    # --- LA MODIFICA CHIAVE E' QUI ---
-    # Sostituiamo il vecchio comando con uno molto più veloce.
-    # Questo attende solo che il D-Bus broker sia attivo.
-    echo "#!/bin/bash" > "$SERVICE_SRC_DIR/run"
-    echo "" >> "$SERVICE_SRC_DIR/run"
-    echo "# Wait intelligently for the D-Bus broker to be available" >> "$SERVICE_SRC_DIR/run"
-    echo "echo \"Waiting for D-Bus broker...\"" >> "$SERVICE_SRC_DIR/run"
-    echo "while ! dbus-send --system --print-reply --dest=org.freedesktop.DBus / org.freedesktop.DBus.ListNames > /dev/null 2>&1; do" >> "$SERVICE_SRC_DIR/run"
-    echo "    sleep 1" >> "$SERVICE_SRC_DIR/run"
-    echo "done" >> "$SERVICE_SRC_DIR/run"
-    echo "echo \"D-Bus ready, starting script.\"" >> "$SERVICE_SRC_DIR/run"
-    echo "" >> "$SERVICE_SRC_DIR/run"
-    echo "exec python3 -u \"$PYTHON_SCRIPT_PATH\" \"$section\" >> \"$LOG_FILE\" 2>&1" >> "$SERVICE_SRC_DIR/run"
-    chmod 755 "$SERVICE_SRC_DIR/run"
+mkdir -p "$SERVICE_SRC_DIR"
 
-    if [ ! -L "$SERVICE_DEST_LINK" ]; then
-        ln -s "$SERVICE_SRC_DIR" "$SERVICE_DEST_LINK"
-    fi
-    echo "Installation for [$section] complete."
+echo "Creating service: $SERVICE_NAME"
+
+cat > "$SERVICE_SRC_DIR/run" << 'RUNEOF'
+#!/bin/bash
+# Wait for D-Bus broker
+echo "Waiting for D-Bus broker..."
+while ! dbus-send --system --print-reply --dest=org.freedesktop.DBus \
+      / org.freedesktop.DBus.ListNames > /dev/null 2>&1; do
+    sleep 1
 done
+echo "D-Bus ready, starting temperature bridge."
+exec /data/etc/dbus-mqtt-temperature/temperature_bridge.py \
+     2>&1 | multilog t s25000 n10 /data/log/dbus-mqtt-temperature
+RUNEOF
 
-echo "--- All services installed successfully. ---"
+chmod 755 "$SERVICE_SRC_DIR/run"
+
+# Crea la directory di log
+mkdir -p /data/log/dbus-mqtt-temperature
+
+# Collega il service
+if [ ! -L "$SERVICE_DEST_LINK" ]; then
+    ln -s "$SERVICE_SRC_DIR" "$SERVICE_DEST_LINK"
+fi
+
+echo "---"
+echo "Installation complete."
+echo ""
+echo "To start the service:"
+echo "  svc -u /service/$SERVICE_NAME"
+echo ""
+echo "To check status:"
+echo "  svstat /service/$SERVICE_NAME"
+echo ""
+echo "To view logs:"
+echo "  tail -f /data/log/dbus-mqtt-temperature/current | tai64nlocal"
+echo ""
+echo "NOTE: If you had individual sensor services from the old version,"
+echo "      stop/remove them with: svc -d /service/dbus-mqtt-temperature-*"
