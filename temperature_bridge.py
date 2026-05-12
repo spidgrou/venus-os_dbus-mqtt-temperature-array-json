@@ -43,7 +43,11 @@ class DbusSensorService:
         self._publish_flags = publish_flags
         self._sensor_id = sensor_id
 
-        self._svc = VeDbusService(service_name, register=False)
+        # Connessione D-Bus dedicata per ogni servizio (necessario perché
+        # VeDbusService registra il path '/' sulla connessione, e non possono
+        # esserci due servizi con lo stesso path sulla stessa connessione)
+        bus = dbus.bus.BusConnection(dbus.bus.BusConnection.TYPE_SYSTEM)
+        self._svc = VeDbusService(service_name, bus=bus, register=False)
         logging.info(
             f"Preparing D-Bus service {service_name} "
             f"instance {device_instance}"
