@@ -223,7 +223,7 @@ class TemperatureBridge:
         try:
             self._client.loop_misc()
             while self._client.want_write():
-                rc = self._client.loop_write(10)
+                rc = self._client.loop_write()
                 if rc != mqtt.MQTT_ERR_SUCCESS:
                     break
         except Exception:
